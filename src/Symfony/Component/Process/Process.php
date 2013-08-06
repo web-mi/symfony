@@ -53,7 +53,11 @@ class Process
         }
 
         $this->commandline = $commandline;
-        $this->cwd = null === $cwd ? getcwd() : $cwd;
+        $this->cwd = $cwd;
+        // on windows, if the cwd changed via chdir(), proc_open defaults to the dir where php was started
+        if (null === $this->cwd && defined('PHP_WINDOWS_VERSION_BUILD')) {
+            $this->cwd = getcwd();
+        }
         if (null !== $env) {
             $this->env = array();
             foreach ($env as $key => $value) {
@@ -279,7 +283,7 @@ class Process
     }
 
     /**
-     * Returns the number of the signal that caused the child process to stop its execution
+     * Returns the number of the signal that caused the child process to stop its execution.
      *
      * It is only meaningful if hasBeenStopped() returns true.
      *
@@ -292,71 +296,148 @@ class Process
         return $this->status['stopsig'];
     }
 
+    /**
+     * Adds a line to the STDOUT stream.
+     *
+     * @param string $line The line to append
+     */
     public function addOutput($line)
     {
         $this->stdout .= $line;
     }
 
+    /**
+     * Adds a line to the STDERR stream.
+     *
+     * @param string $line The line to append
+     */
     public function addErrorOutput($line)
     {
         $this->stderr .= $line;
     }
 
+    /**
+     * Gets the command line to be executed.
+     *
+     * @return string The command to execute
+     */
     public function getCommandLine()
     {
         return $this->commandline;
     }
 
+    /**
+     * Sets the command line to be executed.
+     *
+     * @param string $commandline The command to execute
+     */
     public function setCommandLine($commandline)
     {
         $this->commandline = $commandline;
     }
 
+    /**
+     * Gets the process timeout.
+     *
+     * @return integer The timeout in seconds
+     */
     public function getTimeout()
     {
         return $this->timeout;
     }
 
+    /**
+     * Sets the process timeout.
+     *
+     * @param integer|null $timeout The timeout in seconds
+     */
     public function setTimeout($timeout)
     {
         $this->timeout = $timeout;
     }
 
+    /**
+     * Gets the working directory.
+     *
+     * @return string The current working directory
+     */
     public function getWorkingDirectory()
     {
+        // This is for BC only
+        if (null === $this->cwd) {
+            // getcwd() will return false if any one of the parent directories does not have
+            // the readable or search mode set, even if the current directory does
+            return getcwd() ?: null;
+        }
+
         return $this->cwd;
     }
 
+    /**
+     * Sets the current working directory.
+     *
+     * @param string $cwd The new working directory
+     */
     public function setWorkingDirectory($cwd)
     {
         $this->cwd = $cwd;
     }
 
+    /**
+     * Gets the environment variables.
+     *
+     * @return array The current environment variables
+     */
     public function getEnv()
     {
         return $this->env;
     }
 
+    /**
+     * Sets the environment variables.
+     *
+     * @param array $env The new environment variables
+     */
     public function setEnv(array $env)
     {
         $this->env = $env;
     }
 
+    /**
+     * Gets the contents of STDIN.
+     *
+     * @return string The current contents
+     */
     public function getStdin()
     {
         return $this->stdin;
     }
 
+    /**
+     * Sets the contents of STDIN.
+     *
+     * @param string $stdin The new contents
+     */
     public function setStdin($stdin)
     {
         $this->stdin = $stdin;
     }
 
+    /**
+     * Gets the options for proc_open.
+     *
+     * @return array The current options
+     */
     public function getOptions()
     {
         return $this->options;
     }
 
+    /**
+     * Sets the options for proc_open.
+     *
+     * @param array $options The new options
+     */
     public function setOptions(array $options)
     {
         $this->options = $options;

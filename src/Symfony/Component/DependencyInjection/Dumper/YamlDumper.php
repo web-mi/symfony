@@ -12,7 +12,9 @@
 namespace Symfony\Component\DependencyInjection\Dumper;
 
 use Symfony\Component\Yaml\Yaml;
+use Symfony\Component\DependencyInjection\Alias;
 use Symfony\Component\DependencyInjection\ContainerInterface;
+use Symfony\Component\DependencyInjection\Definition;
 use Symfony\Component\DependencyInjection\Parameter;
 use Symfony\Component\DependencyInjection\Reference;
 
@@ -117,7 +119,7 @@ class YamlDumper extends Dumper
      * Adds a service alias
      *
      * @param string $alias
-     * @param string $id
+     * @param Alias  $id
      *
      * @return string
      */
@@ -164,11 +166,7 @@ class YamlDumper extends Dumper
             return '';
         }
 
-        if ($this->container->isFrozen()) {
-            $parameters = $this->prepareParameters($this->container->getParameterBag()->all());
-        } else {
-            $parameters = $this->container->getParameterBag()->all();
-        }
+        $parameters = $this->prepareParameters($this->container->getParameterBag()->all(), $this->container->isFrozen());
 
         return Yaml::dump(array('parameters' => $parameters), 2);
     }
@@ -177,6 +175,8 @@ class YamlDumper extends Dumper
      * Dumps the value to YAML format
      *
      * @param mixed $value
+     *
+     * @return mixed
      *
      * @throws \RuntimeException When trying to dump object or resource
      */
@@ -236,12 +236,12 @@ class YamlDumper extends Dumper
      *
      * @return array
      */
-    private function prepareParameters($parameters)
+    private function prepareParameters($parameters, $escape = true)
     {
         $filtered = array();
         foreach ($parameters as $key => $value) {
             if (is_array($value)) {
-                $value = $this->prepareParameters($value);
+                $value = $this->prepareParameters($value, $escape);
             } elseif ($value instanceof Reference) {
                 $value = '@'.$value;
             }
@@ -249,7 +249,7 @@ class YamlDumper extends Dumper
             $filtered[$key] = $value;
         }
 
-        return $this->escape($filtered);
+        return $escape ? $this->escape($filtered) : $filtered;
     }
 
     /**
